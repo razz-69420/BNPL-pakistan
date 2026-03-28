@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>BNPL Pakistan</title>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet"/>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #0c0c0c;
+  --surface: #161616;
+  --surface2: #1e1e1e;
+  --border: rgba(255,255,255,0.07);
+  --border2: rgba(255,255,255,0.13);
+  --text: #efefef;
+  --muted: #555;
+  --muted2: #888;
+  --white: #ffffff;
+  --accent: #c8c8c8;
+}
+
+html, body { height: 100%; background: var(--bg); color: var(--text); font-family: 'Manrope', sans-serif; overflow: hidden; }
+
+/* Grain texture */
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  opacity: 0.45;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='250' height='250'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='250' height='250' filter='url(%23n)' opacity='0.09'/%3E%3C/svg%3E");
+  background-size: 250px 250px;
+}
+
+/* Subtle vignette */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background: radial-gradient(ellipse 90% 70% at 50% 50%, transparent 40%, rgba(0,0,0,0.45) 100%);
+}
+
+/* Deck */
+.deck { position: relative; width: 100%; height: 100vh; z-index: 2; }
+
+.slide {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 72px 80px 88px;
+  opacity: 0;
+  transform: translateY(28px);
+  transition: opacity 0.55s cubic-bezier(0.16,1,0.3,1), transform 0.55s cubic-bezier(0.16,1,0.3,1);
+  pointer-events: none;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+}
+
+.slide.active { opacity: 1; transform: translateY(0); pointer-events: all; }
+.slide.exit { opacity: 0; transform: translateY(-24px); transition: opacity 0.32s ease, transform 0.32s ease; }
+
+/* Nav dots */
+.nav {
+  position: fixed; right: 28px; top: 50%; transform: translateY(-50%);
+  display: flex; flex-direction: column; gap: 8px; z-index: 100;
+}
+.dot { width: 4px; height: 4px; border-radius: 2px; background: var(--muted); cursor: pointer; transition: all 0.3s ease; }
+.dot.active { background: var(--white); height: 18px; }
+
+/* Controls */
+.controls {
+  position: fixed; bottom: 28px; left: 0; right: 0;
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 0 80px; z-index: 100;
+}
+.counter { font-size: 11px; color: var(--muted); letter-spacing: 0.12em; font-weight: 500; }
+.arrows { display: flex; gap: 10px; }
+.arrow {
+  width: 36px; height: 36px; border-radius: 50%;
+  border: 1px solid var(--border); background: rgba(16,16,16,0.85);
+  backdrop-filter: blur(10px); color: var(--muted);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; transition: all 0.2s ease; font-size: 13px;
+}
+.arrow:hover { border-color: var(--border2); color: var(--white); }
+.arrow:disabled { opacity: 0.2; cursor: default; }
+
+/* Typography */
+.eyebrow { font-size: 10px; letter-spacing: 0.22em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+.serif { font-family: 'DM Serif Display', serif; font-weight: 400; line-height: 1.06; letter-spacing: -0.02em; color: var(--white); }
+.serif em { font-style: italic; color: var(--accent); }
+h1.serif { font-size: clamp(60px, 8vw, 100px); }
+h2.serif { font-size: clamp(36px, 4.8vw, 58px); }
+.divider { width: 36px; height: 1px; background: #2e2e2e; }
+
+/* Cover */
+.cover { text-align: center; gap: 0; }
+.cover .eyebrow { margin-bottom: 22px; }
+.cover .divider { margin: 22px auto; }
+.cover .sub { font-size: 15px; color: var(--muted2); max-width: 360px; line-height: 1.75; }
+
+/* Content block */
+.block { width: 100%; max-width: 680px; display: flex; flex-direction: column; gap: 26px; }
+.block .eyebrow { margin-bottom: -10px; }
+
+/* Stats */
+.stats { display: flex; gap: 40px; flex-wrap: wrap; }
+.stat .num { font-family: 'DM Serif Display', serif; font-size: 44px; color: var(--white); line-height: 1; letter-spacing: -0.02em; }
+.stat .desc { font-size: 11px; color: var(--muted); margin-top: 6px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; }
+
+/* Bullet list */
+.blist { display: flex; flex-direction: column; gap: 11px; }
+.blist li { list-style: none; display: flex; align-items: baseline; gap: 14px; font-size: 14px; color: var(--muted2); line-height: 1.55; }
+.blist li::before { content: ''; width: 4px; height: 4px; border-radius: 50%; background: #333; flex-shrink: 0; position: relative; top: 1px; }
+.blist li strong { color: var(--text); font-weight: 500; }
+
+/* Flow */
+.flow { display: flex; flex-direction: column; width: 100%; max-width: 540px; }
+.fstep { display: flex; gap: 20px; padding: 14px 0; border-bottom: 1px solid var(--border); }
+.fstep:last-child { border-bottom: none; }
+.fnum { font-size: 10px; color: var(--muted); font-weight: 700; letter-spacing: 0.1em; min-width: 22px; padding-top: 3px; }
+.ftext { font-size: 14px; color: var(--muted2); line-height: 1.55; }
+.ftext strong { color: var(--text); font-weight: 500; }
+
+/* Two col */
+.two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 36px; width: 100%; max-width: 780px; }
+.col h3 { font-size: 10px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--muted); font-weight: 600; margin-bottom: 14px; }
+.col .col-title { font-family: 'DM Serif Display', serif; font-size: 22px; color: var(--white); margin-bottom: 14px; line-height: 1.2; }
+
+/* Cards */
+.cards { display: grid; grid-template-columns: repeat(3,1fr); gap: 10px; width: 100%; max-width: 780px; }
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 20px; }
+.card .c-label { font-size: 10px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--muted); font-weight: 600; margin-bottom: 9px; }
+.card .c-title { font-size: 14px; font-weight: 600; color: var(--white); margin-bottom: 8px; line-height: 1.3; }
+.card .c-body { font-size: 12px; color: #5e5e5e; line-height: 1.6; }
+
+/* Tiers */
+.tiers { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; width: 100%; max-width: 680px; }
+.tier { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 26px; }
+.tier.hi { background: var(--surface2); border-color: var(--border2); }
+.t-badge { font-size: 10px; letter-spacing: 0.2em; text-transform: uppercase; font-weight: 600; color: var(--muted); margin-bottom: 14px; }
+.tier.hi .t-badge { color: var(--accent); }
+.t-name { font-family: 'DM Serif Display', serif; font-size: 24px; color: var(--white); margin-bottom: 16px; }
+.t-list { display: flex; flex-direction: column; gap: 8px; }
+.t-item { font-size: 13px; color: #505050; display: flex; align-items: baseline; gap: 10px; line-height: 1.4; }
+.t-item::before { content: ''; width: 3px; height: 3px; border-radius: 50%; background: #2e2e2e; flex-shrink: 0; position: relative; top: 1px; }
+.tier.hi .t-item { color: #6e6e6e; }
+.tier.hi .t-item::before { background: #3a3a3a; }
+.t-item.hl { color: var(--white) !important; font-weight: 500; }
+
+/* Wide slides */
+.wide-block { width: 100%; max-width: 780px; }
+.wide-block .eyebrow { margin-bottom: 14px; }
+.wide-block h2.serif { margin-bottom: 26px; }
+
+/* Closing */
+.closing { text-align: center; gap: 0; }
+.closing .eyebrow { margin-bottom: 20px; }
+.closing .divider { margin: 20px auto; }
+.closing .sub { font-size: 14px; color: var(--muted2); max-width: 340px; line-height: 1.8; }
+
+@media (max-width: 640px) {
+  .slide { padding: 48px 28px 80px; }
+  .two-col, .tiers { grid-template-columns: 1fr; }
+  .cards { grid-template-columns: 1fr; }
+  .controls { padding: 0 28px; }
+  h2.serif { font-size: 32px; }
+  .stats { gap: 28px; }
+}
+</style>
+</head>
+<body>
+
+<nav class="nav" id="nav"></nav>
+<div class="controls">
+  <div class="counter" id="counter"></div>
+  <div class="arrows">
+    <button class="arrow" id="prev" onclick="go(-1)">↑</button>
+    <button class="arrow" id="next" onclick="go(1)">↓</button>
+  </div>
+</div>
+
+<div class="deck">
+
+  <!-- 1 Cover -->
+  <div class="slide cover active">
+    <div class="eyebrow">Business Plan · 2025</div>
+    <h1 class="serif">BNPL<br><em>Pakistan</em></h1>
+    <div class="divider"></div>
+    <p class="sub">Shariah-compliant credit for the 100 million Pakistanis who have never had access to it.</p>
+  </div>
+
+  <!-- 2 Problem -->
+  <div class="slide" style="align-items:flex-start;padding-left:max(80px,10vw)">
+    <div class="block">
+      <div class="eyebrow">The Problem</div>
+      <h2 class="serif">A country with<br>no <em>credit infrastructure</em></h2>
+      <div class="stats">
+        <div class="stat"><div class="num">&lt;1%</div><div class="desc">Credit card penetration</div></div>
+        <div class="stat"><div class="num">100M</div><div class="desc">Unbanked adults</div></div>
+        <div class="stat"><div class="num">0</div><div class="desc">Dominant BNPL player</div></div>
+      </div>
+      <ul class="blist">
+        <li>High-ticket purchases paid entirely out of pocket — or skipped entirely</li>
+        <li>The credit gap is enormous. The infrastructure to fill it barely exists</li>
+        <li><strong>No dominant player has claimed the highest-pain verticals</strong></li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- 3 Solution -->
+  <div class="slide" style="align-items:flex-start;padding-left:max(80px,10vw)">
+    <div class="block">
+      <div class="eyebrow">The Solution</div>
+      <h2 class="serif">A platform <em>&</em><br>a merchant network</h2>
+      <ul class="blist">
+        <li><strong>Shariah-compliant BNPL</strong> — powered by an NBFC balance-sheet partner</li>
+        <li><strong>Merchant network</strong> — consumers discover partners, merchants get leads</li>
+        <li>One product. Two revenue streams. Built for the unbanked majority</li>
+        <li>Entry via SECP Regulatory Sandbox — <strong>no upfront capital required</strong></li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- 4 Flow -->
+  <div class="slide" style="align-items:flex-start;padding-left:max(80px,10vw)">
+    <div class="block">
+      <div class="eyebrow">Transaction Flow</div>
+      <h2 class="serif">Simple at the<br><em>point of sale</em></h2>
+      <div class="flow">
+        <div class="fstep"><div class="fnum">01</div><div class="ftext">Consumer requests BNPL at the merchant</div></div>
+        <div class="fstep"><div class="fnum">02</div><div class="ftext"><strong>CNIC + phone number.</strong> Decision returned in under 5 minutes</div></div>
+        <div class="fstep"><div class="fnum">03</div><div class="ftext">Consumer picks repayment — <strong>3 to 6 months, chosen freely</strong></div></div>
+        <div class="fstep"><div class="fnum">04</div><div class="ftext">Consumer signs a <strong>Shariah-compliant digital agreement</strong></div></div>
+        <div class="fstep"><div class="fnum">05</div><div class="ftext">NBFC partner pays the merchant. Consumer repays on schedule.</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 5 Tiers -->
+  <div class="slide">
+    <div class="wide-block">
+      <div class="eyebrow">Consumer Product</div>
+      <h2 class="serif">Two tiers.<br><em>One clear upgrade.</em></h2>
+      <div class="tiers">
+        <div class="tier">
+          <div class="t-badge">Free</div>
+          <div class="t-name">Standard</div>
+          <div class="t-list">
+            <div class="t-item">Standard approval speed</div>
+            <div class="t-item">Up to 3 months repayment</div>
+            <div class="t-item">Basic credit limits</div>
+            <div class="t-item hl">Upfront % required on large purchases</div>
+          </div>
+        </div>
+        <div class="tier hi">
+          <div class="t-badge">Paid</div>
+          <div class="t-name">Member</div>
+          <div class="t-list">
+            <div class="t-item">Priority approval</div>
+            <div class="t-item">Up to 6 months repayment</div>
+            <div class="t-item">Higher credit limits</div>
+            <div class="t-item">Exclusive merchant discounts</div>
+            <div class="t-item">Formal credit history building</div>
+            <div class="t-item hl">No upfront payment — ever</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 6 Revenue -->
+  <div class="slide">
+    <div class="wide-block">
+      <div class="eyebrow">Revenue Model</div>
+      <h2 class="serif">Three streams.<br><em>Two sides.</em></h2>
+      <div class="two-col">
+        <div class="col">
+          <h3>Merchant Side</h3>
+          <div class="col-title">Commission + Subscription</div>
+          <ul class="blist">
+            <li><strong>Commission</strong> per transaction — rate TBD by vertical</li>
+            <li><strong>Monthly SaaS</strong> for platform access, dashboard, and lead visibility</li>
+            <li>Sold on BNPL. Retained by lead generation.</li>
+          </ul>
+        </div>
+        <div class="col">
+          <h3>Consumer Side</h3>
+          <div class="col-title">Optional Membership</div>
+          <ul class="blist">
+            <li>Free tier is genuinely useful — no artificial forcing</li>
+            <li>Paid tier earns its fee via the <strong>no-upfront mechanic</strong></li>
+            <li>Pricing TBD — validated on the ground</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 7 Risk -->
+  <div class="slide">
+    <div class="wide-block">
+      <div class="eyebrow">Risk Management</div>
+      <h2 class="serif">Deterrence over<br><em>enforcement</em></h2>
+      <div class="cards">
+        <div class="card">
+          <div class="c-label">Primary</div>
+          <div class="c-title">Credit Bureau Reporting</div>
+          <div class="c-body">Every transaction and default reported. SECP-mandated. Powerful for anyone who wants future credit access.</div>
+        </div>
+        <div class="card">
+          <div class="c-label">High Tickets</div>
+          <div class="c-title">Guarantor Model</div>
+          <div class="c-body">Co-signer required above a set threshold. Works naturally within Pakistan's family culture.</div>
+        </div>
+        <div class="card">
+          <div class="c-label">Network</div>
+          <div class="c-title">Blacklisting</div>
+          <div class="c-body">Defaulters lose access to the entire merchant network. More powerful as the network grows.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 8 Regulatory -->
+  <div class="slide" style="align-items:flex-start;padding-left:max(80px,10vw)">
+    <div class="block">
+      <div class="eyebrow">Regulatory Path</div>
+      <h2 class="serif">Sandbox first.<br><em>License later.</em></h2>
+      <div class="flow">
+        <div class="fstep"><div class="fnum">01</div><div class="ftext"><strong>SECP Regulatory Sandbox</strong> — no minimum capital to apply. 6–12 months supervised live operation.</div></div>
+        <div class="fstep"><div class="fnum">02</div><div class="ftext"><strong>NBFC balance-sheet partner</strong> via existing banking contacts. They carry the credit risk.</div></div>
+        <div class="fstep"><div class="fnum">03</div><div class="ftext">Live repayment data used to <strong>raise capital</strong> and pursue full NBFC licensing post-sandbox.</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 9 GTM -->
+  <div class="slide">
+    <div class="wide-block">
+      <div class="eyebrow">Go-To-Market</div>
+      <h2 class="serif">In-country.<br><em>Then remote.</em></h2>
+      <div class="two-col">
+        <div class="col">
+          <h3>First 2–3 Months</h3>
+          <ul class="blist">
+            <li>Two founders on the ground — <strong>Islamabad & Lahore</strong></li>
+            <li>Sign anchor merchants across target verticals</li>
+            <li>Secure NBFC partnership via banking contacts</li>
+            <li>Submit SECP sandbox application</li>
+            <li>Hire and train local team</li>
+            <li><strong>First live transaction within 6 months</strong></li>
+          </ul>
+        </div>
+        <div class="col">
+          <h3>Team Left Behind</h3>
+          <ul class="blist">
+            <li><strong>1 Tech</strong> — product and platform continuity</li>
+            <li><strong>1–2 Sales</strong> — merchant acquisition and management</li>
+            <li><strong>1 Consultant</strong> — senior failsafe for key decisions</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 10 Open -->
+  <div class="slide" style="align-items:flex-start;padding-left:max(80px,10vw)">
+    <div class="block">
+      <div class="eyebrow">Still Open</div>
+      <h2 class="serif">Known<br><em>unknowns</em></h2>
+      <ul class="blist">
+        <li>Consumer and merchant subscription pricing</li>
+        <li>Shariah structure — Murabaha vs Musawamah (pending Shariah board)</li>
+        <li>Commission rates per vertical</li>
+        <li>Upfront payment threshold and percentage</li>
+        <li>Underwriting upgrade path beyond CNIC + phone</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- 11 Closing -->
+  <div class="slide closing">
+    <div class="eyebrow">BNPL Pakistan · 2025</div>
+    <h2 class="serif">The gap is<br><em>the opportunity</em></h2>
+    <div class="divider"></div>
+    <p class="sub">100 million unbanked adults. No dominant player in the highest-pain verticals. A regulatory path that needs no upfront capital. The window is open.</p>
+  </div>
+
+</div>
+
+<script>
+const slides = Array.from(document.querySelectorAll('.slide'));
+const navEl = document.getElementById('nav');
+const counterEl = document.getElementById('counter');
+let cur = 0, busy = false;
+
+slides.forEach((_, i) => {
+  const d = document.createElement('div');
+  d.className = 'dot' + (i === 0 ? ' active' : '');
+  d.onclick = () => goTo(i);
+  navEl.appendChild(d);
+});
+
+function updateUI() {
+  document.querySelectorAll('.dot').forEach((d, i) => d.classList.toggle('active', i === cur));
+  counterEl.textContent = `${String(cur+1).padStart(2,'0')} / ${String(slides.length).padStart(2,'0')}`;
+  document.getElementById('prev').disabled = cur === 0;
+  document.getElementById('next').disabled = cur === slides.length - 1;
+}
+
+function goTo(idx) {
+  if (busy || idx === cur || idx < 0 || idx >= slides.length) return;
+  busy = true;
+  const old = cur;
+  slides[old].classList.add('exit');
+  slides[old].classList.remove('active');
+  setTimeout(() => {
+    slides[old].classList.remove('exit');
+    cur = idx;
+    slides[cur].classList.add('active');
+    slides[cur].scrollTop = 0;
+    updateUI();
+    setTimeout(() => busy = false, 560);
+  }, 320);
+}
+
+function go(dir) { goTo(cur + dir); }
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'ArrowDown' || e.key === 'ArrowRight') go(1);
+  if (e.key === 'ArrowUp' || e.key === 'ArrowLeft') go(-1);
+});
+
+let lw = 0;
+document.addEventListener('wheel', e => {
+  const now = Date.now();
+  if (now - lw < 850) return;
+  lw = now;
+  go(e.deltaY > 0 ? 1 : -1);
+}, { passive: true });
+
+let t0 = 0;
+document.addEventListener('touchstart', e => t0 = e.touches[0].clientY, { passive: true });
+document.addEventListener('touchend', e => {
+  const diff = t0 - e.changedTouches[0].clientY;
+  if (Math.abs(diff) > 50) go(diff > 0 ? 1 : -1);
+});
+
+updateUI();
+</script>
+</body>
+</html>
